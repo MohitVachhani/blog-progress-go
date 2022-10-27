@@ -47,7 +47,7 @@ func CreateBlock(input blockInterface.CreateBlockInput) blockInterface.BlockSche
 	insertOneBlockResult, err := blocksCollection.InsertOne(ctx, createBlockInput)
 
 	if err != nil {
-		log.Fatal("Error occurred while creating a new user in mongo", err)
+		log.Fatal("Error occurred while creating a new block in mongo", err)
 	}
 
 	// convert interface{} to primitive objectId
@@ -56,6 +56,41 @@ func CreateBlock(input blockInterface.CreateBlockInput) blockInterface.BlockSche
 
 	var getBlockByIdInput blockInterface.GetBlockById = blockInterface.GetBlockById{
 		BlockId: insertedBlockId.Hex(),
+	}
+
+	block := GetBlockById(getBlockByIdInput)
+
+	return block
+}
+
+func UpdateBlock(input blockInterface.UpdateBlockInput) blockInterface.BlockSchema {
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+
+	blocksCollection := mongoUtils.GetCollection(mongoUtils.MongoClient, "blocks")
+	var blockChildrenIds []primitive.ObjectID
+
+	for inputChildrenIdsIterator := 0; inputChildrenIdsIterator < len(input.ChildrenIds); inputChildrenIdsIterator++ {
+		blockChildrenIds = append(blockChildrenIds, mongoUtils.ConvertStringToPrimitiveObjectId(input.ChildrenIds[inputChildrenIdsIterator]))
+	}
+
+	updateBlockInput := blockInterface.BlockSchema{
+		Type:        input.Type,
+		Url:         input.Url,
+		Text:        input.Text,
+		ParentId:    mongoUtils.ConvertStringToPrimitiveObjectId(input.ParentId),
+		Duration:    input.Duration,
+		UpdatedAt:   time.Now().UTC(),
+		ChildrenIds: blockChildrenIds,
+	}
+
+	_, err := blocksCollection.UpdateOne(ctx, bson.M{"_id": mongoUtils.ConvertStringToPrimitiveObjectId(input.BlockId)}, bson.M{"$set": updateBlockInput})
+
+	if err != nil {
+		log.Fatal("Error occurred while updating a block in mongo", err)
+	}
+
+	var getBlockByIdInput blockInterface.GetBlockById = blockInterface.GetBlockById{
+		BlockId: input.BlockId,
 	}
 
 	block := GetBlockById(getBlockByIdInput)

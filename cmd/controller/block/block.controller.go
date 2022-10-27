@@ -36,3 +36,24 @@ func CreateBlock(w http.ResponseWriter, r *http.Request) {
 	// returns the client with json.
 	json.NewEncoder(w).Encode(bson.M{"success": true})
 }
+
+func UpdateBlock(w http.ResponseWriter, r *http.Request) {
+
+	// body parameters
+	body, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		log.Printf("Error reading body: %v", err)
+		http.Error(w, "can't read body", http.StatusBadRequest)
+		return
+	}
+
+	// transfer body to createBlock input
+	var updateBlockInput blockInterface.UpdateBlockInput
+	json.Unmarshal(body, &updateBlockInput)
+
+	updatedBlock := blockService.UpdateBlock(updateBlockInput)
+
+	// returns the client with json.
+	json.NewEncoder(w).Encode(bson.M{"success": true, "block": updatedBlock})
+}
